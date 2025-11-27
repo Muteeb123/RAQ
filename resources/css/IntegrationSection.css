@@ -1,0 +1,162 @@
+/* IntegrationSection.css */
+.integration-container {
+    max-width: 100%;
+    padding: 0;
+}
+
+.integration-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.integration-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E1E3E5;
+    border-radius: 8px;
+    padding: 20px;
+    height: fit-content;
+    min-height: auto;
+}
+
+.integration-header-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.integration-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.slack-icon {
+    background-color: #FEF7EC;
+    color: #B98900;
+}
+
+.discord-icon {
+    background-color: #EAF5FA;
+    color: #006FBB;
+}
+
+.integration-info {
+    flex: 1;
+}
+
+.integration-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    gap: 12px;
+}
+
+.integration-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 24px;
+}
+
+.integration-description {
+    margin: 0;
+    color: #6D7175;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+/* Status Section */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.not-connected {
+    background-color: #F6F6F7;
+    color: #6D7175;
+}
+
+/* API Section */
+.api-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.api-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    margin: 0;
+}
+
+.api-input {
+    width: 100%;
+    height: 36px;
+    padding: 8px 12px;
+    border: 1px solid #C9CCCF;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 20px;
+    box-sizing: border-box;
+}
+
+.api-input:focus {
+    outline: none;
+    border-color: #008060;
+    box-shadow: 0 0 0 1px #008060;
+}
+
+.connect-button {
+    background-color: #008060;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: fit-content;
+    min-width: 120px;
+}
+
+.connect-button:hover {
+    background-color: #006E52;
+}
+
+.connect-button:active {
+    background-color: #005E46;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    .integration-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .integration-title-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

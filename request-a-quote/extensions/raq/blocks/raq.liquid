@@ -1,0 +1,243 @@
+{% comment %}
+  Log product info for debugging purposes
+{% endcomment %}
+{% if template == 'product' %}
+<style>
+  /* Modal background */
+  #dynamicFormModal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+  }
+
+  /* Modal content box */
+  #dynamicFormModal .modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+  }
+
+  /* Close button */
+  #dynamicFormModal .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #333;
+  }
+
+  /* Form fields styling */
+  #dynamicFormModal form input,
+  #dynamicFormModal form select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  #dynamicFormModal form button[type="submit"] {
+    width: 100%;
+    padding: 12px;
+    background-color: #000;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  var productId = {{ product.id | json }};
+  var firstVariantId = {{ product.variants.first.id }};
+  var selectedVariantId = null;
+
+  function getVariantFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const variantFromUrl = urlParams.get("variant");
+    if (variantFromUrl) return variantFromUrl;
+    return firstVariantId;
+  }
+
+  selectedVariantId = getVariantFromURL();
+
+  const observeUrlChange = () => {
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+      const currentUrl = location.href;
+      if (currentUrl !== lastUrl) {
+        lastUrl = currentUrl;
+        selectedVariantId = getVariantFromURL();
+      }
+    }).observe(document, { subtree: true, childList: true });
+  };
+  observeUrlChange();
+
+  // Fetch backend settings
+  fetch('https://namely-finer-seasnail.ngrok-free.app/product/settings/' + productId, {
+    headers: { 'ngrok-skip-browser-warning': 'true' }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (!data.success || !data.product || !data.product[0]) return;
+    var productSettings = data.product[0];
+
+    // Hide price
+    if (productSettings.hide_price == 1) {
+      document.querySelectorAll('.price, .product__price, .price-item, .product-price')
+        .forEach(el => el.style.display = 'none');
+    }
+
+    // Hide Add to Cart
+    if (productSettings.hide_add_to_cart == 1) {
+      var addToCartBtn = document.querySelector('form[action^="/cart/add"] [type="submit"]');
+      if (addToCartBtn) addToCartBtn.style.display = 'none';
+    }
+
+    // Hide SKU
+    if (productSettings.hide_SKU == 1) {
+      document.querySelectorAll('.product-sku, .sku, .product__sku')
+        .forEach(el => el.style.display = 'none');
+    }
+
+    // Create Request a Quote button and modal
+    if (productSettings.form_id && productSettings.form && productSettings.form.fields) {
+
+      var buyNowBtn = document.querySelector('.shopify-payment-button__button.shopify-payment-button__button--unbranded');
+      if (!buyNowBtn) return;
+
+      var customBtn = document.createElement('button');
+      customBtn.className = buyNowBtn.className;
+      customBtn.style.cssText = buyNowBtn.style.cssText;
+      customBtn.innerText = 'Request a Quote';
+      buyNowBtn.parentNode.replaceChild(customBtn, buyNowBtn);
+
+      var modal = document.createElement('div');
+      modal.id = 'dynamicFormModal';
+      modal.innerHTML = `<div class="modal-content"><span class="close-btn">&times;</span></div>`;
+      document.body.appendChild(modal);
+
+      var modalContent = modal.querySelector('.modal-content');
+      modal.querySelector('.close-btn').onclick = () => modal.style.display = 'none';
+
+      customBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        modalContent.innerHTML = '<span class="close-btn">&times;</span>';
+        modal.querySelector('.close-btn').onclick = () => modal.style.display = 'none';
+
+        // CLIENT LOGIN CHECK
+       var customerLoggedIn = {{ customer  | json }};
+
+if (productSettings.form.client_login && !customerLoggedIn) {
+  var loginDiv = document.createElement('div');
+  loginDiv.innerHTML = `Login required. <a href="{{ routes.account_login_url }}">Click here to login</a>`;
+  modalContent.appendChild(loginDiv);
+  modal.style.display = 'block';
+  return;
+}
+        // CREATE FORM
+        var formEl = document.createElement('form');
+
+        productSettings.form.fields.forEach(function(field) {
+          if (field.type === "Attachment" && !productSettings.form.allow_file_upload) return; // Skip if file uploads not allowed
+
+          var label = document.createElement('label');
+          label.innerText = field.label;
+          label.style.display = 'block';
+          formEl.appendChild(label);
+
+          let input = document.createElement('input');
+          input.id = field.id;
+          input.name = field.id;
+          input.placeholder = field.placeholder || '';
+          input.type = field.type === "Email" ? "email" :
+                       field.type === "Phone Field" ? "tel" :
+                       field.type === "Date" ? "date" :
+                       field.type === "Attachment" ? "file" : "text";
+
+          formEl.appendChild(input);
+        });
+
+        var submitBtn = document.createElement('button');
+        submitBtn.type = 'submit';
+        submitBtn.innerText = productSettings.form.cta_text || 'Submit';
+        formEl.appendChild(submitBtn);
+
+        formEl.addEventListener('submit', function(evt) {
+          evt.preventDefault();
+
+          var formDataToSend = new FormData();
+          formDataToSend.append("product_id", productId);
+          formDataToSend.append("variant_id", selectedVariantId);
+
+          productSettings.form.fields.forEach(function(field) {
+            var inputEl = formEl.querySelector('#' + field.id);
+            if (!inputEl) return; // skip if field skipped
+            if (inputEl.type === "file" && inputEl.files[0]) {
+              formDataToSend.append(field.label, inputEl.files[0]);
+            } else if (inputEl.type !== "file") {
+              formDataToSend.append(field.label, inputEl.value || '');
+            }
+          });
+
+          fetch("https://namely-finer-seasnail.ngrok-free.app/product/form/submit", {
+            method: "POST",
+            headers: { 'ngrok-skip-browser-warning': 'true' },
+            body: formDataToSend
+          })
+          .then(res => res.json())
+          .then(result => {
+            alert("Form submitted successfully!");
+            modal.style.display = 'none';
+            if (productSettings.form.redirect_url) {
+              window.open(productSettings.form.redirect_url);
+            }
+          })
+          .catch(err => console.error("Form submit error:", err));
+        });
+
+        modalContent.appendChild(formEl);
+        modal.style.display = 'block';
+      });
+
+      window.onclick = function(event) {
+        if (event.target == modal) modal.style.display = 'none';
+      };
+    }
+
+  })
+  .catch(err => console.error("Fetch error:", err));
+
+});
+</script>
+{% endif %}
+
+
+
+{% schema %}
+{
+  "name": "Request a Quote",
+  "target": "section",
+  "settings": [
+    { "type": "product", "id": "product", "label": "product", "autofill": true },
+    { "type": "color", "id": "colour", "label": "Star Colour", "default": "#ff0000" }
+  ]
+}
+{% endschema %}
